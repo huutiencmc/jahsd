@@ -21,4 +21,9 @@ public class User {
     public void setRole_name(String roleName) {
         this.role_name = RoleEnum.fromString(roleName);
     }
+
+    public String getDepartmentname() {
+        return department_name;
+    }
+
 }

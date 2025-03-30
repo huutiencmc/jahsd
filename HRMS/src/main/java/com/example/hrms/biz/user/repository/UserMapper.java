@@ -15,7 +15,7 @@ public interface UserMapper {
             "LEFT JOIN Departments d ON u.department_id = d.department_id")
     List<User> getAllUsers();
     // Lấy người dùng theo tên người dùng
-    @Select("SELECT u.username, u.email, u.password, u.department_id, d.department_name, " +
+    @Select("SELECT u.username, u.email, u.password, d.department_name, " +
             "u.role_name, u.is_supervisor, u.status, u.employee_name " +
             "FROM Users u " +
             "LEFT JOIN Departments d ON u.department_id = d.department_id " +
@@ -27,17 +27,20 @@ public interface UserMapper {
     String getPasswordByUsername(String username);
 
     // Thêm người dùng mới
-    @Insert("INSERT INTO Users (username, email, password, department_id, role_name, is_supervisor, status, employee_name) VALUES (#{username}, #{email}, #{password}, #{departmentId}, #{role_name}, #{isSupervisor}, #{status}, #{employee_name})")
+    @Insert("INSERT INTO Users (username, email, password, department_id, role_name, is_supervisor, status, employee_name) " +
+            "VALUES (#{username}, #{email}, #{password}, " +
+            "(SELECT department_id FROM departments WHERE department_name = #{departmentName} LIMIT 1), " +
+            "#{role_name}, #{isSupervisor}, #{status}, #{employee_name})")
     void insertUser(User user);
 
+
     // Cập nhật thông tin người dùng
-    @Update("UPDATE Users SET email = #{email}, password = #{password}, " +
-            "department_id = (SELECT department_id FROM Departments WHERE department_name = #{departmentName}), " +
+    @Update("UPDATE Users SET " +
+            "department_id = (SELECT department_id FROM Departments WHERE department_name = #{department_name} LIMIT 1), " +
             "role_name = #{role_name}, is_supervisor = #{isSupervisor}, status = #{status}, " +
             "employee_name = #{employee_name} " +
             "WHERE username = #{username}")
     void updateUser(User user);
-
 
     // Xóa người dùng theo tên người dùng
     @Delete("DELETE FROM Users WHERE username = #{username}")
@@ -68,4 +71,9 @@ public interface UserMapper {
 
     @Select("SELECT COUNT(*) FROM Users WHERE username = #{username}")
     int checkUsernameExists(String username);
+
+    @Select("SELECT department_id FROM departments WHERE department_name = #{departmentName}")
+    Long getDepartmentIdByName(String departmentName);
+
+
 }

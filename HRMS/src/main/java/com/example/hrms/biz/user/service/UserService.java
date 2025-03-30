@@ -46,10 +46,28 @@ public class UserService {
     }
 
     public void insertUser(User user) {
-        userMapper.insertUser(user);
+        if (user.getDepartmentname() != null) {
+            // Tìm department_id từ department_name
+            Long departmentId = userMapper.getDepartmentIdByName(user.getDepartmentname());
+            if (departmentId == null) {
+                throw new RuntimeException("Department not found: " + user.getDepartmentname());
+            }
+            user.setDepartmentId(departmentId); // Gán department_id vào user
+        }
+        userMapper.insertUser(user); // Chèn user vào database
     }
 
+
+
     public void updateUser(User user) {
+        if (user.getDepartmentname() != null) {
+            // Tìm department_id từ department_name
+            Long departmentId = userMapper.getDepartmentIdByName(user.getDepartmentname());
+            if (departmentId == null) {
+                throw new RuntimeException("Department not found: " + user.getDepartmentname());
+            }
+            user.setDepartmentId(departmentId);
+        }
         userMapper.updateUser(user);
     }
 
@@ -67,7 +85,6 @@ public class UserService {
                 .map(user -> {
                     UserDTO.Resp resp = new UserDTO.Resp();
                     resp.setUsername(user.getUsername());
-                    resp.setDepartmentId(user.getDepartmentId());
                     resp.setRole_name(user.getRole_name());
                     resp.setIsSupervisor(user.isSupervisor());
                     resp.setStatus(user.getStatus());
@@ -76,18 +93,6 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // Thêm phương thức để lấy đơn vị và quyền của tất cả người dùng
-    public List<UserDTO.DepartmentAndRole> getDepartmentsAndRoles() {
-        List<User> users = userMapper.getDepartmentsAndRoles();
-        return users.stream()
-                .map(user -> {
-                    UserDTO.DepartmentAndRole resp = new UserDTO.DepartmentAndRole();
-                    resp.setDepartmentId(user.getDepartmentId());
-                    resp.setRole_name(user.getRole_name());
-                    return resp;
-                })
-                .collect(Collectors.toList());
-    }
 
     public boolean isUsernameDuplicated(String username) {
         return userMapper.checkUsernameExists(username) > 0;

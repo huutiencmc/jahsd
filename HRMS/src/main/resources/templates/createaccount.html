@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     async function checkUsername() {
-      const username = document.getElementById('username').value;
+      const username = document.getElementById('username').value.trim();
       const messageSpan = document.getElementById('usernameMessage');
 
       if (!username) {
@@ -28,7 +28,7 @@
           messageSpan.className = 'text-red-500 text-sm mt-1';
         }
       } catch (error) {
-        messageSpan.textContent = 'Có lỗi xảy ra. Vui lòng thử lại sau!';
+        messageSpan.textContent = 'Có lỗi xảy ra. Vui lòng thử lại!';
         messageSpan.className = 'text-red-500 text-sm mt-1';
       }
     }
@@ -36,55 +36,50 @@
     async function fetchDepartments() {
       try {
         const response = await fetch('/api/v1/departments/all');
+        if (!response.ok) throw new Error(`Lỗi HTTP! Status: ${response.status}`);
+
         const result = await response.json();
+        console.log("Dữ liệu đơn vị nhận được:", result); // Kiểm tra dữ liệu trả về
 
-        let departments = [];
-        if (typeof result.retMsg === 'string') {
-          const matches = result.retMsg.match(/Department\(departmentId=(\d+), departmentName=([\w\s]+),/g);
-          if (matches) {
-            departments = matches.map(dept => {
-              const parts = dept.match(/departmentId=(\d+), departmentName=([\w\s]+)/);
-              return { departmentId: parts[1], departmentName: parts[2] };
-            });
-          }
+        if (!Array.isArray(result.data)) {
+          console.error("Lỗi: result.data không phải mảng!", result);
+          return;
         }
-
-        const uniqueDepartments = [];
-        const seenIds = new Set();
-        departments.forEach(dept => {
-          if (!seenIds.has(dept.departmentId)) {
-            uniqueDepartments.push(dept);
-            seenIds.add(dept.departmentId);
-          }
-        });
 
         const departmentSelect = document.getElementById('department');
         departmentSelect.innerHTML = '<option value="">Chọn đơn vị</option>';
-        uniqueDepartments.forEach(dept => {
+
+        // Dùng Map để loại bỏ trùng lặp departmentId
+        const uniqueDepartments = new Map();
+        result.data.forEach(dept => {
+          if (!uniqueDepartments.has(dept.departmentId)) {
+            uniqueDepartments.set(dept.departmentId, dept.departmentName);
+          }
+        });
+
+        // Thêm các đơn vị vào dropdown
+        uniqueDepartments.forEach((name, id) => {
           const option = document.createElement('option');
-          option.value = dept.departmentId;
-          option.textContent = dept.departmentName;
+          option.value = id;
+          option.textContent = name;
           departmentSelect.appendChild(option);
         });
 
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách đơn vị:', error);
+        console.error("Lỗi khi lấy danh sách đơn vị:", error);
       }
     }
+
 
     async function fetchRoles() {
       try {
         const response = await fetch('/api/v1/roles/all');
         const result = await response.json();
-        const rolesString = result.retMsg;
-        const roles = rolesString.match(/Role\(roleId=\d+, roleName=(\w+)\)/g).map(role => {
-          const roleName = role.match(/roleName=(\w+)/)[1];
-          return { roleName };
-        });
 
         const roleSelect = document.getElementById('role');
-        roleSelect.innerHTML = '<option>Chọn quyền</option>';
-        roles.forEach(role => {
+        roleSelect.innerHTML = '<option value="">Chọn quyền</option>';
+
+        result.data.forEach(role => {
           const option = document.createElement('option');
           option.value = role.roleName;
           option.textContent = role.roleName;
@@ -98,15 +93,20 @@
     async function createAccount(event) {
       event.preventDefault();
 
-      const userReq = {
-        username: document.getElementById('username').value,
-        employee_name: document.getElementById('employee_name').value,
-        password: document.getElementById('password').value,
-        email: document.getElementById('email').value,
-        department_name: document.getElementById('department').value,
-        role_name: document.getElementById('role').value,
-        status: document.getElementById('active').checked
-      };
+      const username = document.getElementById('username').value.trim();
+      const employeeName = document.getElementById('employee_name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const departmentId = document.getElementById('department').value;
+      const roleName = document.getElementById('role').value;
+      const status = document.getElementById('active').checked;
+
+      if (!username || !employeeName || !email || !password || !departmentId || !roleName) {
+        alert("Vui lòng nhập đầy đủ thông tin!");
+        return;
+      }
+
+      const userReq = { username, employee_name: employeeName, email, password, departmentId, role_name: roleName, status };
 
       try {
         const response = await fetch('/api/v1/users/create', {
@@ -116,52 +116,29 @@
         });
 
         const result = await response.json();
-        console.log('Response:', result); // Ghi lại phản hồi để kiểm tra
 
-        if (result.status === 'Success') {
-          showNotification(result.message);
+        if (response.ok && result.status === 'Success') {
+          alert("Tạo tài khoản thành công!");
           window.location.href = "/users";
         } else {
-          showNotification(result.message || 'Có lỗi xảy ra. Vui lòng thử lại sau!');
+          alert(result.message || "Có lỗi xảy ra. Vui lòng thử lại!");
         }
       } catch (error) {
-        console.error('Error:', error);
-        showNotification('Có lỗi xảy ra. Vui lòng thử lại sau!');
+        console.error('Lỗi khi tạo tài khoản:', error);
+        alert("Có lỗi xảy ra. Vui lòng thử lại sau!");
       }
     }
 
     function updateEmail() {
-      const username = document.getElementById('username').value;
-      const emailField = document.getElementById('email');
-      emailField.value = username ? `${username}@cmcglobal.com.vn` : '';
+      const username = document.getElementById('username').value.trim();
+      document.getElementById('email').value = username ? `${username}@cmcglobal.com.vn` : '';
     }
 
     window.onload = function() {
       fetchDepartments();
       fetchRoles();
       document.getElementById('username').addEventListener('input', updateEmail);
-      document.querySelector('button[type="reset"]').addEventListener('click', function() {
-        window.location.href = "/users"; // Redirect to user.html when cancel button is clicked
-      });
     };
-
-    const section = document.querySelector("section"),
-            overlay = document.querySelector(".overlay"),
-            closeBtn = document.querySelector(".close-btn"),
-            modalTitle = document.getElementById("modal-title"),
-            modalMessage = document.getElementById("modal-message"),
-            secondaryAction = document.getElementById("secondary-action");
-
-    function showNotification(message, confirm = false) {
-      modalTitle.textContent = confirm ? "Confirmation" : "Notification";
-      modalMessage.textContent = message;
-      secondaryAction.style.display = confirm ? "inline-block" : "none";
-      section.classList.add("active");
-    }
-
-    overlay.addEventListener("click", () => section.classList.remove("active"));
-    closeBtn.addEventListener("click", () => section.classList.remove("active"));
-  </script>
   </script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -181,6 +158,7 @@
       <label class="block text-gray-700 mb-1">Tên nhân viên:</label>
       <input id="employee_name" type="text" class="border border-gray-300 rounded-md p-2 w-full" placeholder="Nhập tên nhân viên">
     </div>
+
     <div class="mb-4">
       <label class="block text-gray-700 mb-1">Email:</label>
       <input id="email" type="email" class="border border-gray-300 rounded-md p-2 w-full" placeholder="Nhập email">
@@ -189,14 +167,14 @@
     <div class="mb-4">
       <label class="block text-gray-700 mb-1">Đơn vị:</label>
       <select id="department" class="border border-gray-300 rounded-md p-2 w-full">
-        <option>Chọn đơn vị</option>
+        <option value="">Chọn đơn vị</option>
       </select>
     </div>
 
     <div class="mb-4">
       <label class="block text-gray-700 mb-1">Quyền:</label>
       <select id="role" class="border border-gray-300 rounded-md p-2 w-full">
-        <option>Chọn quyền</option>
+        <option value="">Chọn quyền</option>
       </select>
     </div>
 

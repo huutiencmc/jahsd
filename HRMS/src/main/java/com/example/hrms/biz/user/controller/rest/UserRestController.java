@@ -127,7 +127,7 @@ public class UserRestController {
 
         // Nếu người dùng là Supervisor, cấm cập nhật Department và Role là Admin
         if ("Supervisor".equals(currentUserRole)) {
-            if (userReq.getDepartmentId() != null) {
+            if (userReq.getDepartment_name() != null) {
                 return new Result("Error", "Supervisors are not allowed to update Department.");
             }
             if ("Admin".equals(userReq.getRole_name())) {
@@ -137,7 +137,7 @@ public class UserRestController {
 
         // Cập nhật thông tin hợp lệ
         existingUser.setPassword(userReq.getPassword());
-        existingUser.setDepartmentId(userReq.getDepartmentId());
+        existingUser.setDepartment_name(userReq.getDepartment_name());
         existingUser.setRole_name(String.valueOf(userReq.getRole_name()));
         existingUser.setSupervisor(userReq.isSupervisor());
         existingUser.setStatus(userReq.getStatus());

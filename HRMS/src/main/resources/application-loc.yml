@@ -4,7 +4,7 @@ spring:
 #    username: username
 #    password: password
     username: root
-    password: Cmcuni@2025
+    password: tien2004
     driver-class-name: com.mysql.cj.jdbc.Driver
 #  jpa:
 #    properties:
